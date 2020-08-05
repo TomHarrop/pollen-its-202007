@@ -58,8 +58,8 @@ errF_plot <- plotErrors(errF, nominalQ = TRUE)
 errR_plot <- plotErrors(errR, nominalQ = TRUE)
 
 # dereplicate
-derepF <- derepFastq(r1_tmp, verbose = TRUE)
-derepR <- derepFastq(r2_tmp, verbose = TRUE)
+derepF <- derepFastq(r1_tmp[file.exists(r1_tmp)], verbose = TRUE)
+derepR <- derepFastq(r2_tmp[file.exists(r2_tmp)], verbose = TRUE)
 
 # run dada algo
 dadaF <- dada(derepF, err = errF, multithread = threads)

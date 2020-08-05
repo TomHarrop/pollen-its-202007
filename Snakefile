@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
-import pandas
 from Bio import Seq
+from pathlib import Path
 import multiprocessing
+import pandas
+import snakemake
+
 
 #############
 # FUNCTIONS #
@@ -15,17 +18,38 @@ def rc(x):
 
 def get_fastq_paths(wildcards):
     sample_number = wildcards.sample_number
-    return ({
-        'r1': f'data/reads/3550P1-{int(sample_number):02}-0-1_S{int(sample_number)}_L001_R1_001.fastq.gz',
-        'r2': f'data/reads/3550P1-{int(sample_number):02}-0-1_S{int(sample_number)}_L001_R2_001.fastq.gz'})
+    # print(sample_number)
+    if sample_number in reads1_sn:
+        # print('matched reads1_sn')
+        return ({
+            'r1': f'data/reads/3550P1-{int(sample_number):02}-0-1_S{int(sample_number)}_L001_R1_001.fastq.gz',
+            'r2': f'data/reads/3550P1-{int(sample_number):02}-0-1_S{int(sample_number)}_L001_R2_001.fastq.gz'})
+    elif sample_number in reads2_sn:
+        # print('matched reads2_sn')
+        my_sn = sample_number.split('_')[1]
+        # print(f'my_sn {my_sn}')
+        return ({
+            'r1': f'data/reads2/ACJ2020-{int(my_sn):02}_S{int(my_sn) - 72}_L001_R1_001.fastq.gz',
+            'r2': f'data/reads2/ACJ2020-{int(my_sn):02}_S{int(my_sn) - 72}_L001_R2_001.fastq.gz'})
+
 
 
 ###########
 # GLOBALS #
 ###########
 
-sample_table = 'data/OG3550-P1.xlsx'
 database = 'data/its1-58024_dada2.fa'
+
+# reads
+reads1_dir = 'data/reads'
+reads1_path = Path(
+    reads1_dir,
+    '3550P1-{sample_number}-0-1_S{short_sn}_L001_R{r}_001.fastq.gz')
+
+reads2_dir = 'data/reads2'
+reads2_path = Path(
+    reads2_dir,
+    'ACJ2020-{sample_number}_S{short_sn}_L001_R{r}_001.fastq.gz')
 
 its_f = 'ATGCGATACTTGGTGTGAAT'
 its_r = 'GACGCTTCTCCAGACTACAAT'
@@ -42,16 +66,15 @@ cutadapt = ('shub://TomHarrop/singularity-containers:cutadapt_2.6'
 # MAIN #
 ########
 
-# read the sample table
-sample_data = pandas.read_excel(
-    sample_table,
-    skiprows=list(range(0, 44)),
-    nrows=96)
 
-all_libs = sorted(set(sample_data.to_dict()['Library ID'].values()))
-# all_libs = all_libs[0:4] # to subset
+# glob the files for this run
+reads1_sn = sorted(set(snakemake.io.glob_wildcards(reads1_path).sample_number))
+reads2_sn = [
+    f'rd_{x}'
+    for x in sorted(set(
+        snakemake.io.glob_wildcards(reads2_path).sample_number))]
 
-all_sample_nos = [int(x.split('-')[1]) for x in all_libs]
+all_sample_nos = sorted(set(reads1_sn + reads2_sn))
 
 #########
 # RULES #
